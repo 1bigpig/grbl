@@ -1,9 +1,13 @@
 This is a hack to enable grbl .9i to drive a stock pre-2004 MaxNC 10 milling machine using phase drive stepper commands.
 ALL "D" pins (D2-D13) are used to control the phases of the stepper driver.  
 //My MaxNC 10-2 phase driver PIN CONFIGURATION 
+
 //Z D2-D5
+
 //X D6-D9
+
 //Y D10-D13
+
 The sequence is half-stepping and is directionally correct for my machine.
 
 This "hack" is based on the nullsub grbl fork created on Aug 2, 2012.

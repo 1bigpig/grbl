@@ -183,7 +183,7 @@ static st_prep_t prep;
 void st_wake_up() 
 {
   // Enable stepper drivers.
-  if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
+/*  if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
   else { STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); }
 
   if (sys.state & (STATE_CYCLE | STATE_HOMING)){
@@ -201,10 +201,10 @@ void st_wake_up()
       // Set step pulse time. Ad hoc computation from oscilloscope. Uses two's complement.
       st.step_pulse_time = -(((settings.pulse_microseconds-2)*TICKS_PER_MICROSECOND) >> 3);
     #endif
-
+*/
     // Enable Stepper Driver Interrupt
     TIMSK1 |= (1<<OCIE1A);
-  }
+  
 }
 
 
@@ -224,11 +224,232 @@ void st_go_idle()
     delay_ms(settings.stepper_idle_lock_time);
     pin_state = true; // Override. Disable steppers.
   }
-  if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { pin_state = !pin_state; } // Apply pin invert.
-  if (pin_state) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
-  else { STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); }
+//  if (bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE)) { pin_state = !pin_state; } // Apply pin invert.
+//  if (pin_state) { STEPPERS_DISABLE_PORT |= (1<<STEPPERS_DISABLE_BIT); }
+//  else { STEPPERS_DISABLE_PORT &= ~(1<<STEPPERS_DISABLE_BIT); }
 }
 
+#define DIR_FORWARD 	(0)
+#define DIR_BACKWARD	(1)
+
+//My MaxNC 10-2 phase driver PIN CONFIGURATION 
+//Z D2-D5
+//X D6-D9
+//Y D10-D13
+
+#define STEPPER_Z_A1 	(0x01<<PIND2)
+#define STEPPER_Z_A2 	(0x01<<PIND3)	
+#define STEPPER_Z_B1 	(0x01<<PIND4)
+#define STEPPER_Z_B2 	(0x01<<PIND5)
+
+#define STEPPER_X_A1 	(0x01<<PIND6)		// Port D for phase A	
+#define STEPPER_X_A2 	(0x01<<PIND7)	
+#define STEPPER_X_B1 	(0x01<<PINB0)		// Port B for phase B	
+#define STEPPER_X_B2 	(0x01<<PINB1)	
+
+#define STEPPER_Y_A1 	(0x01<<PINB2)
+#define STEPPER_Y_A2 	(0x01<<PINB3)	
+#define STEPPER_Y_B1 	(0x01<<PINB4)
+#define STEPPER_Y_B2 	(0x01<<PINB5)
+
+#define STEPPING_PORT_X		PORTB			//Split ports D and B
+#define STEPPING_PORT_Y		PORTB		
+#define STEPPING_PORT_Z		PORTD
+
+#define STEPPING_DDR_X		DDRB
+#define STEPPING_DDR_Y		DDRB
+#define STEPPING_DDR_Z		DDRD
+
+#define ALL_STEPPER_PINS_Y (STEPPER_Y_A1|STEPPER_Y_A2|STEPPER_Y_B1|STEPPER_Y_B2)
+#define ALL_STEPPER_PINS_X (STEPPER_X_B1|STEPPER_X_B2|STEPPER_Y_A1|STEPPER_Y_A2|STEPPER_Y_B1|STEPPER_Y_B2)
+#define ALL_STEPPER_PINS_Z (STEPPER_Z_A1|STEPPER_Z_A2|STEPPER_Z_B1|STEPPER_Z_B2|STEPPER_X_A1|STEPPER_X_A2)
+
+const int stepper_pins[3][4] = {
+		{STEPPER_X_A1, STEPPER_X_A2, STEPPER_X_B1, STEPPER_X_B2},
+		{STEPPER_Y_A1, STEPPER_Y_A2, STEPPER_Y_B1, STEPPER_Y_B2},
+		{STEPPER_Z_A1, STEPPER_Z_A2, STEPPER_Z_B1, STEPPER_Z_B2},
+		};
+
+void do_half_step(int direction, int axis) 
+{
+	static unsigned int crrnt_step[3] = {0,0,0};
+	
+	if(direction == DIR_FORWARD) {
+		crrnt_step[axis] ++;
+		if (crrnt_step[axis] >= 8)
+			crrnt_step[axis] = 0;
+	}
+	else{
+		if(crrnt_step[axis] == 0)
+			crrnt_step[axis] = 8;
+		crrnt_step[axis] --;			
+	}
+															// ~ = logic NOT
+															// & = logic AND
+															// | = logic OR
+	if(axis == X_AXIS) { // Z_AXIS is on a different I/O port
+		switch(crrnt_step[axis]) {
+//MaxNC 10 uses Reverse polarity for driving stepper phase. write to port 0=high (energize) 1=low (no current)
+			case 0:
+				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				break;
+			case 1:			
+				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				break;
+			case 2:				
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				break;
+			case 3:	
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_X &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				break;
+			case 4:
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_X &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				break;
+			case 5:			
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_X &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_X &= ~stepper_pins[axis][3] ; //0
+				break;
+			case 6:				
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_X &= ~stepper_pins[axis][3] ; //0
+				break;
+			case 7:	
+				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_X &= ~stepper_pins[axis][3] ; //0
+				break;			
+		return;
+		}
+	}
+	if(axis == Y_AXIS) { 
+		switch(crrnt_step[axis]) {
+//Reverse polarity for driving 0=high 1=low
+			case 0:
+				STEPPING_PORT_Y &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				break;
+			case 1:			
+				STEPPING_PORT_Y &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Y &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				break;
+			case 2:				
+				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Y &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				break;
+			case 3:	
+				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Y &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_Y &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				break;
+			case 4:
+				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Y &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				break;
+			case 5:			
+				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Y &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_Y &= ~stepper_pins[axis][3] ; //0
+				break;
+			case 6:				
+				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Y &= ~stepper_pins[axis][3] ; //0
+				break;
+			case 7:	
+				STEPPING_PORT_Y &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Y &= ~stepper_pins[axis][3] ; //0
+				break;			
+		return;
+		}
+	}
+	if(axis == Z_AXIS) { // Z_AXIS is on a different I/O port
+		switch(crrnt_step[axis]) {
+//Reverse polarity for driving 0=high 1=low
+			case 0:
+				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				break;
+			case 1:			
+				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				break;
+			case 2:				
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				break;
+			case 3:	
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_Z &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				break;
+			case 4:
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				break;
+			case 5:			
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_Z &= ~stepper_pins[axis][3] ; //0
+				break;
+			case 6:				
+				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][3] ; //0
+				break;
+			case 7:	
+				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_Z &= ~stepper_pins[axis][3] ; //0
+				break;			
+		return;
+		}
+	}
+}
 
 /* "The Stepper Driver Interrupt" - This timer interrupt is the workhorse of Grbl. Grbl employs
    the venerable Bresenham line algorithm to manage and exactly synchronize multi-axis moves.
@@ -283,6 +504,7 @@ ISR(TIMER1_COMPA_vect)
 // SPINDLE_ENABLE_PORT ^= 1<<SPINDLE_ENABLE_BIT; // Debug: Used to time ISR
   if (busy) { return; } // The busy-flag is used to avoid reentering this interrupt
   
+/*
   // Set the direction pins a couple of nanoseconds before we step the steppers
   DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | (st.dir_outbits & DIRECTION_MASK);
 
@@ -297,6 +519,34 @@ ISR(TIMER1_COMPA_vect)
   // exactly settings.pulse_microseconds microseconds, independent of the main Timer1 prescaler.
   TCNT0 = st.step_pulse_time; // Reload Timer0 counter
   TCCR0B = (1<<CS01); // Begin Timer0. Full speed, 1/8 prescaler
+*/
+
+
+	if(st.step_outbits & (1<<X_STEP_BIT)) {
+		if(st.exec_block->direction_bits & (1<<X_DIRECTION_BIT)) {
+			do_half_step(DIR_FORWARD, X_AXIS);
+		} else {
+			do_half_step(DIR_BACKWARD, X_AXIS);
+		}
+	}	
+	if(st.step_outbits & (1<<Y_STEP_BIT)) {
+		if(st.exec_block->direction_bits & (1<<Y_DIRECTION_BIT)) {
+			do_half_step(DIR_FORWARD, Y_AXIS);
+		} else {
+			do_half_step(DIR_BACKWARD, Y_AXIS);
+		}	
+	}
+	if(st.step_outbits & (1<<Z_STEP_BIT)) {
+		if(st.exec_block->direction_bits & (1<<Z_DIRECTION_BIT)) {
+			do_half_step(DIR_FORWARD, Z_AXIS);
+		} else {
+			do_half_step(DIR_BACKWARD, Z_AXIS);
+		}	
+	}
+
+
+
+
 
   busy = true;
   sei(); // Re-enable interrupts to allow Stepper Port Reset Interrupt to fire on-time. 
@@ -418,7 +668,7 @@ ISR(TIMER1_COMPA_vect)
 ISR(TIMER0_OVF_vect)
 {
   // Reset stepping pins (leave the direction pins)
-  STEP_PORT = (STEP_PORT & ~STEP_MASK) | (step_port_invert_mask & STEP_MASK); 
+//  STEP_PORT = (STEP_PORT & ~STEP_MASK) | (step_port_invert_mask & STEP_MASK); 
   TCCR0B = 0; // Disable Timer0 to prevent re-entering this interrupt when it's not needed. 
 }
 #ifdef STEP_PULSE_DELAY
@@ -429,7 +679,7 @@ ISR(TIMER0_OVF_vect)
   // st_wake_up() routine.
   ISR(TIMER0_COMPA_vect) 
   { 
-    STEP_PORT = st.step_bits; // Begin step pulse.
+//    STEP_PORT = st.step_bits; // Begin step pulse.
   }
 #endif
 
@@ -466,8 +716,8 @@ void st_reset()
   st_generate_step_dir_invert_masks();
       
   // Initialize step and direction port pins.
-  STEP_PORT = (STEP_PORT & ~STEP_MASK) | step_port_invert_mask;
-  DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | dir_port_invert_mask;
+  //STEP_PORT = (STEP_PORT & ~STEP_MASK) | step_port_invert_mask;
+  //DIRECTION_PORT = (DIRECTION_PORT & ~DIRECTION_MASK) | dir_port_invert_mask;
 }
 
 
@@ -475,9 +725,16 @@ void st_reset()
 void stepper_init()
 {
   // Configure step and direction interface pins
-  STEP_DDR |= STEP_MASK;
-  STEPPERS_DISABLE_DDR |= 1<<STEPPERS_DISABLE_BIT;
-  DIRECTION_DDR |= DIRECTION_MASK;
+ // STEP_DDR |= STEP_MASK;
+ // STEPPERS_DISABLE_DDR |= 1<<STEPPERS_DISABLE_BIT;
+ // DIRECTION_DDR |= DIRECTION_MASK;
+
+  STEPPING_DDR_X  |= ALL_STEPPER_PINS_X;
+  STEPPING_PORT_X |= ALL_STEPPER_PINS_X;
+  //STEPPING_DDR_Y  |= ALL_STEPPER_PINS_Y;
+  //STEPPING_PORT_Y |= ALL_STEPPER_PINS_Y;
+  STEPPING_DDR_Z  |= ALL_STEPPER_PINS_Z;
+  STEPPING_PORT_Z |= ALL_STEPPER_PINS_Z;
 
   // Configure Timer 1: Stepper Driver Interrupt
   TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC

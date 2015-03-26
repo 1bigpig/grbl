@@ -26,14 +26,14 @@ void spindle_init()
 {    
   // On the Uno, spindle enable and PWM are shared. Other CPUs have seperate enable pin.
   #ifdef VARIABLE_SPINDLE
-    SPINDLE_PWM_DDR |= (1<<SPINDLE_PWM_BIT); // Configure as PWM output pin.
+//    SPINDLE_PWM_DDR |= (1<<SPINDLE_PWM_BIT); // Configure as PWM output pin.
     #ifndef CPU_MAP_ATMEGA328P 
-      SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT); // Configure as output pin.
+//      SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT); // Configure as output pin.
     #endif     
   #else
-    SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT); // Configure as output pin.
+//    SPINDLE_ENABLE_DDR |= (1<<SPINDLE_ENABLE_BIT); // Configure as output pin.
   #endif
-  SPINDLE_DIRECTION_DDR |= (1<<SPINDLE_DIRECTION_BIT); // Configure as output pin.
+//  SPINDLE_DIRECTION_DDR |= (1<<SPINDLE_DIRECTION_BIT); // Configure as output pin.
   spindle_stop();
 }
 
@@ -44,10 +44,10 @@ void spindle_stop()
   #ifdef VARIABLE_SPINDLE
     TCCRA_REGISTER &= ~(1<<COMB_BIT); // Disable PWM. Output voltage is zero.
     #ifndef CPU_MAP_ATMEGA328P 
-      SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT); // Set pin to low.
+//      SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT); // Set pin to low.
     #endif
   #else
-    SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT); // Set pin to low.
+//    SPINDLE_ENABLE_PORT &= ~(1<<SPINDLE_ENABLE_BIT); // Set pin to low.
   #endif  
 }
 
@@ -62,9 +62,9 @@ void spindle_set_state(uint8_t state, float rpm)
   } else {
 
     if (state == SPINDLE_ENABLE_CW) {
-      SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);
+//      SPINDLE_DIRECTION_PORT &= ~(1<<SPINDLE_DIRECTION_BIT);
     } else {
-      SPINDLE_DIRECTION_PORT |= (1<<SPINDLE_DIRECTION_BIT);
+//      SPINDLE_DIRECTION_PORT |= (1<<SPINDLE_DIRECTION_BIT);
     }
 
     #ifdef VARIABLE_SPINDLE
@@ -93,10 +93,10 @@ void spindle_set_state(uint8_t state, float rpm)
       OCR_REGISTER = current_pwm; // Set PWM pin output
     
       #ifdef CPU_MAP_ATMEGA2560 // On the Uno, spindle enable and PWM are shared.
-        SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);
+ //       SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);
       #endif
     #else   
-      SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);
+//      SPINDLE_ENABLE_PORT |= (1<<SPINDLE_ENABLE_BIT);
     #endif
 
   }

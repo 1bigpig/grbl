@@ -20,6 +20,7 @@ The phase sequence was left in long-hand code, so that it would be easy to modif
 
 For a MaxNC10 machine, my Arduino to DB25 was wired:
 Arduino pin - DB25 pin (female connector)
+
 D2  - 2
 D3  - 3
 D4  - 4

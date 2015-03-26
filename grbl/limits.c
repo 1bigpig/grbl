@@ -28,12 +28,12 @@
 
 void limits_init() 
 {
-  LIMIT_DDR &= ~(LIMIT_MASK); // Set as input pins
+ // LIMIT_DDR &= ~(LIMIT_MASK); // Set as input pins
 
   #ifdef DISABLE_LIMIT_PIN_PULL_UP
-    LIMIT_PORT &= ~(LIMIT_MASK); // Normal low operation. Requires external pull-down.
+ //   LIMIT_PORT &= ~(LIMIT_MASK); // Normal low operation. Requires external pull-down.
   #else
-    LIMIT_PORT |= (LIMIT_MASK);  // Enable internal pull-up resistors. Normal high operation.
+ //   LIMIT_PORT |= (LIMIT_MASK);  // Enable internal pull-up resistors. Normal high operation.
   #endif
 
   if (bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) {
@@ -197,7 +197,7 @@ void limits_go_home(uint8_t cycle_mask)
     st_wake_up(); // Initiate motion
     do {
       // Check limit state. Lock out cycle axes when they change.
-      limit_state = LIMIT_PIN;
+//      limit_state = LIMIT_PIN;
       if (invert_pin) { limit_state ^= LIMIT_MASK; }
       for (idx=0; idx<N_AXIS; idx++) {
         if (axislock & step_pin[idx]) {

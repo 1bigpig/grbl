@@ -21,6 +21,14 @@
   
 #include "grbl.h"
 
+// These are now null functions because the MaxNC phase drive uses all the D pins
+
+void limits_init() {}
+void limits_disable() {}
+void limits_go_home(uint8_t cycle_mask) {}
+//void limits_soft_check(float *target) //This function still works 
+
+/*
 
 // Homing axis search distance multiplier. Computed by this value times the axis max travel.
 #define HOMING_AXIS_SEARCH_SCALAR  1.5 // Must be > 1 to ensure limit switch will be engaged.
@@ -28,12 +36,13 @@
 
 void limits_init() 
 {
- // LIMIT_DDR &= ~(LIMIT_MASK); // Set as input pins
+
+ LIMIT_DDR &= ~(LIMIT_MASK); // Set as input pins
 
   #ifdef DISABLE_LIMIT_PIN_PULL_UP
- //   LIMIT_PORT &= ~(LIMIT_MASK); // Normal low operation. Requires external pull-down.
+   LIMIT_PORT &= ~(LIMIT_MASK); // Normal low operation. Requires external pull-down.
   #else
- //   LIMIT_PORT |= (LIMIT_MASK);  // Enable internal pull-up resistors. Normal high operation.
+   LIMIT_PORT |= (LIMIT_MASK);  // Enable internal pull-up resistors. Normal high operation.
   #endif
 
   if (bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) {
@@ -48,13 +57,16 @@ void limits_init()
     WDTCSR |= (1<<WDCE) | (1<<WDE);
     WDTCSR = (1<<WDP0); // Set time-out at ~32msec.
   #endif
+
 }
 
 
 void limits_disable()
 {
+
   LIMIT_PCMSK &= ~LIMIT_MASK;  // Disable specific pins of the Pin Change Interrupt
   PCICR &= ~(1 << LIMIT_INT);  // Disable Pin Change Interrupt
+
 }
 
 
@@ -197,7 +209,7 @@ void limits_go_home(uint8_t cycle_mask)
     st_wake_up(); // Initiate motion
     do {
       // Check limit state. Lock out cycle axes when they change.
-//      limit_state = LIMIT_PIN;
+      limit_state = LIMIT_PIN;
       if (invert_pin) { limit_state ^= LIMIT_MASK; }
       for (idx=0; idx<N_AXIS; idx++) {
         if (axislock & step_pin[idx]) {
@@ -306,6 +318,7 @@ void limits_go_home(uint8_t cycle_mask)
   sys.state = STATE_HOMING; 
 }
 
+*/
 
 // Performs a soft limit check. Called from mc_line() only. Assumes the machine has been homed,
 // the workspace volume is in all negative space, and the system is in normal operation.

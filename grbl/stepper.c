@@ -237,32 +237,29 @@ void st_go_idle()
 //X D6-D9
 //Y D10-D13
 
-#define STEPPER_Z_A1 	(0x01<<PIND2)
+#define STEPPER_Z_A1 	(0x01<<PIND2)		// Port D for Z Axis
 #define STEPPER_Z_A2 	(0x01<<PIND3)	
 #define STEPPER_Z_B1 	(0x01<<PIND4)
 #define STEPPER_Z_B2 	(0x01<<PIND5)
 
-#define STEPPER_X_A1 	(0x01<<PIND6)		// Port D for phase A	
+#define STEPPER_X_A1 	(0x01<<PIND6)		// Port D for X Axis phase A	
 #define STEPPER_X_A2 	(0x01<<PIND7)	
-#define STEPPER_X_B1 	(0x01<<PINB0)		// Port B for phase B	
+#define STEPPER_X_B1 	(0x01<<PINB0)		// Port B for X axis phase B	
 #define STEPPER_X_B2 	(0x01<<PINB1)	
 
-#define STEPPER_Y_A1 	(0x01<<PINB2)
+#define STEPPER_Y_A1 	(0x01<<PINB2)		// Port B for Y Axis
 #define STEPPER_Y_A2 	(0x01<<PINB3)	
 #define STEPPER_Y_B1 	(0x01<<PINB4)
 #define STEPPER_Y_B2 	(0x01<<PINB5)
 
-#define STEPPING_PORT_X		PORTB			//Split ports D and B
-#define STEPPING_PORT_Y		PORTB		
-#define STEPPING_PORT_Z		PORTD
+#define STEPPING_PORT_B		PORTB			//port B
+#define STEPPING_PORT_D		PORTD			//Port D
 
-#define STEPPING_DDR_X		DDRB
-#define STEPPING_DDR_Y		DDRB
-#define STEPPING_DDR_Z		DDRD
+#define STEPPING_DDR_B		DDRB
+#define STEPPING_DDR_D		DDRD
 
-#define ALL_STEPPER_PINS_Y (STEPPER_Y_A1|STEPPER_Y_A2|STEPPER_Y_B1|STEPPER_Y_B2)
-#define ALL_STEPPER_PINS_X (STEPPER_X_B1|STEPPER_X_B2|STEPPER_Y_A1|STEPPER_Y_A2|STEPPER_Y_B1|STEPPER_Y_B2)
-#define ALL_STEPPER_PINS_Z (STEPPER_Z_A1|STEPPER_Z_A2|STEPPER_Z_B1|STEPPER_Z_B2|STEPPER_X_A1|STEPPER_X_A2)
+#define ALL_STEPPER_PINS_B (STEPPER_X_B1|STEPPER_X_B2|STEPPER_Y_A1|STEPPER_Y_A2|STEPPER_Y_B1|STEPPER_Y_B2)
+#define ALL_STEPPER_PINS_D (STEPPER_Z_A1|STEPPER_Z_A2|STEPPER_Z_B1|STEPPER_Z_B2|STEPPER_X_A1|STEPPER_X_A2)
 
 const int stepper_pins[3][4] = {
 		{STEPPER_X_A1, STEPPER_X_A2, STEPPER_X_B1, STEPPER_X_B2},
@@ -291,52 +288,52 @@ void do_half_step(int direction, int axis)
 		switch(crrnt_step[axis]) {
 //MaxNC 10 uses Reverse polarity for driving stepper phase. write to port 0=high (energize) 1=low (no current)
 			case 0:
-				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_B |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_B |= stepper_pins[axis][3] ; //1
 				break;
 			case 1:			
-				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_B |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_B |= stepper_pins[axis][3] ; //1
 				break;
 			case 2:				
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_B |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_B |= stepper_pins[axis][3] ; //1
 				break;
 			case 3:	
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_X &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_B &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_B |= stepper_pins[axis][3] ; //1
 				break;
 			case 4:
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_X &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_X |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_B &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_B |= stepper_pins[axis][3] ; //1
 				break;
 			case 5:			
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_X &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_X &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_B &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_B &= ~stepper_pins[axis][3] ; //0
 				break;
 			case 6:				
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_X &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_B |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_B &= ~stepper_pins[axis][3] ; //0
 				break;
 			case 7:	
-				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_X |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_X &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_B |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_B &= ~stepper_pins[axis][3] ; //0
 				break;			
 		return;
 		}
@@ -345,52 +342,52 @@ void do_half_step(int direction, int axis)
 		switch(crrnt_step[axis]) {
 //Reverse polarity for driving 0=high 1=low
 			case 0:
-				STEPPING_PORT_Y &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 1:			
-				STEPPING_PORT_Y &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Y &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 2:				
-				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Y &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 3:	
-				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Y &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_Y &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 4:
-				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Y &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_Y |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 5:			
-				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Y &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_Y &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][3] ; //0
 				break;
 			case 6:				
-				STEPPING_PORT_Y |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Y &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][3] ; //0
 				break;
 			case 7:	
-				STEPPING_PORT_Y &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Y |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Y |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Y &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][3] ; //0
 				break;			
 		return;
 		}
@@ -399,52 +396,52 @@ void do_half_step(int direction, int axis)
 		switch(crrnt_step[axis]) {
 //Reverse polarity for driving 0=high 1=low
 			case 0:
-				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 1:			
-				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 2:				
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 3:	
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][1] ; //0
-				STEPPING_PORT_Z &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][1] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 4:
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][3] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][3] ; //1
 				break;
 			case 5:			
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][2] ; //0
-				STEPPING_PORT_Z &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][2] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][3] ; //0
 				break;
 			case 6:				
-				STEPPING_PORT_Z |= stepper_pins[axis][0] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][0] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][3] ; //0
 				break;
 			case 7:	
-				STEPPING_PORT_Z &= ~stepper_pins[axis][0] ; //0
-				STEPPING_PORT_Z |= stepper_pins[axis][1] ; //1
-				STEPPING_PORT_Z |= stepper_pins[axis][2] ; //1
-				STEPPING_PORT_Z &= ~stepper_pins[axis][3] ; //0
+				STEPPING_PORT_D &= ~stepper_pins[axis][0] ; //0
+				STEPPING_PORT_D |= stepper_pins[axis][1] ; //1
+				STEPPING_PORT_D |= stepper_pins[axis][2] ; //1
+				STEPPING_PORT_D &= ~stepper_pins[axis][3] ; //0
 				break;			
 		return;
 		}
@@ -729,12 +726,10 @@ void stepper_init()
  // STEPPERS_DISABLE_DDR |= 1<<STEPPERS_DISABLE_BIT;
  // DIRECTION_DDR |= DIRECTION_MASK;
 
-  STEPPING_DDR_X  |= ALL_STEPPER_PINS_X;
-  STEPPING_PORT_X |= ALL_STEPPER_PINS_X;
-  //STEPPING_DDR_Y  |= ALL_STEPPER_PINS_Y;
-  //STEPPING_PORT_Y |= ALL_STEPPER_PINS_Y;
-  STEPPING_DDR_Z  |= ALL_STEPPER_PINS_Z;
-  STEPPING_PORT_Z |= ALL_STEPPER_PINS_Z;
+  STEPPING_DDR_B  |= ALL_STEPPER_PINS_B;
+  STEPPING_PORT_B |= ALL_STEPPER_PINS_B;
+  STEPPING_DDR_D  |= ALL_STEPPER_PINS_D;
+  STEPPING_PORT_D |= ALL_STEPPER_PINS_D;
 
   // Configure Timer 1: Stepper Driver Interrupt
   TCCR1B &= ~(1<<WGM13); // waveform generation = 0100 = CTC
